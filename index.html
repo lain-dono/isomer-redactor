@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <title>Example</title>
 <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/uikit/2.6.0/css/uikit.min.css">
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/uikit/2.6.0/css/addons/uikit.addons.min.css">
 <style>
 html, body {
 	overflow: hidden;
@@ -12,16 +13,58 @@ html, body {
 	width: 100%;
 	height: 100%;
 }
-canvas {
-	position: absolute;
-	top:0;
-	bottom:0;
-}
 </style>
 </head>
 <body>
+<nav class="uk-navbar">
+
+	<div class="uk-navbar-content">
+		<div class="uk-button-group">
+			<a id="undo" class="uk-button uk-button-danger" href="#"><i class="uk-icon-reply"></i></a>
+			<a id="redo" class="uk-button uk-button-success" href="#"><i class="uk-icon-share"></i></a>
+		</div>
+	</div>
+	<ul class="uk-navbar-nav">
+		<li class="uk-parent" data-uk-dropdown="">
+			<a href="">Add <i class="uk-icon-caret-down"></i></a>
+
+			<div style="" class="uk-dropdown uk-dropdown-navbar">
+				<ul class="uk-nav uk-nav-navbar">
+					<li><a href="#"></a></li>
+					<!--<li><a href="#">Item</a></li>
+					<li><a href="#">Another item</a></li>
+					<li class="uk-nav-header">Header</li>
+					<li><a href="#">Item</a></li>
+					<li><a href="#">Another item</a></li>
+					<li class="uk-nav-divider"></li>
+					<li><a href="#">Separated item</a></li>
+					-->
+				</ul>
+			</div>
+
+		</li>
+	</ul>
+
+</nav>
+<div class="uk-grid uk-grid-small">
+	<div class="uk-width-1-10">..</div>
+	<div id="canvas" class="uk-width-7-10"></div>
+	<div class="uk-width-2-10">
+		<ul class="uk-nav uk-nav-side">
+			<li><a href="">vnfjkdslvfdnsjk</a></li>
+			<li class="uk-active"><a href="">vnfjkdslvfdnsjk</a></li>
+			<li><a href="">...</a></li>
+			<li><a href="">...</a></li>
+			<li class="uk-active"><a href="">...</a></li>
+			<li><a href="">...</a></li>
+			<li><a href="">...</a></li>
+			<li><a href="">...</a></li>
+		</ul>
+	</div>
+</div>
 <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/uikit/2.6.0/js/uikit.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/uikit/2.6.0/js/addons/notify.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/pixi.js/1.5.2/pixi.js"></script>
 <script src="//rawgit.com/jdan/isomer/master/dist/isomer.min.js"></script>
 <script src="/build/main.js"></script>

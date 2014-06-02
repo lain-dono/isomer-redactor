@@ -11,10 +11,23 @@ function Delete(id) {
 }
 function AddPrism(pos, size) {
 	this.redo = function(map) {
-		map.objects.push({type: 'prism', pos: pos, size: size, rotateZ: {point: [0,0,0], yaw: 0}})
+		map.objects.push({type: 'prism', pos: pos, size: size, rotateZ: {point: [0,0,0], yaw: 0}, color:[0,0,0,0]})
 	};
 	this.undo = function(map) {
 		map.objects.pop();
+	};
+}
+
+function SetColor(id, color) {
+	var old;
+	this.redo = function(map) {
+		var obj = map.objects[id];
+		old = obj.color;
+		obj.color = color;
+	};
+	this.undo = function(map) {
+		var obj = map.objects[id];
+		obj.color = old;
 	};
 }
 

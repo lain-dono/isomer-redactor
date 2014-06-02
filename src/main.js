@@ -8,7 +8,7 @@ var w = window.innerWidth,
 	h = window.innerHeight,
 	stage = new PIXI.Stage(0xCC0000, true),
 	renderer = PIXI.autoDetectRenderer(w, h);
-document.body.appendChild(renderer.view);
+$('#canvas').append(renderer.view);
 
 var iso = new Isomer(renderer.view);
 iso.canvas = new PIXI.Graphics();
@@ -29,8 +29,9 @@ iso.canvas.path = function (points, color) {
 window.onresize = resize;
 resize();
 function resize() {
-	w = window.innerWidth;
-	h = window.innerHeight;
+	w = $('#canvas').width();
+	h = window.innerHeight - $('#canvas').position().top
+
 	renderer.resize(w, h);
 	iso.canvas.width = w;
 	iso.canvas.height = h;
@@ -44,7 +45,6 @@ redactor.run(new commands.AddPrism([ 1, 0, 0], [4,4,2]));
 redactor.run(new commands.AddPrism([ 0, 0, 0], [1,4,1]));
 redactor.run(new commands.AddPrism([-1, 1, 0], [1,2,1]));
 redactor.run(new commands.Delete(2));
-redactor.undo(1);
 redactor.run(new commands.ResizePrism(1, [1,3,1]));
 redactor.run(new commands.RotateZ(1, [1/2,3/2,1/2], Math.PI/8));
 
