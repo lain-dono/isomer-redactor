@@ -41,6 +41,7 @@ function Redactor(map) {
 		command.redo(this.map);
 		this.commands.push(command);
 		this.current++;
+		$.UIkit.notify(command.constructor.name, msg_success);
 		console.log('run', command.constructor.name)
 	};
  
