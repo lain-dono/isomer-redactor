@@ -10,9 +10,32 @@ function Delete(id) {
 		map.objects = [].concat(left, obj, right)
 	};
 }
-function AddPrism(pos, size) {
+function AddPrism(pos, size, color, scale, rotateZ) {
 	this.redo = function(map) {
-		map.objects.push({type: 'prism', pos: pos, size: size, rotateZ: {point: [0,0,0], yaw: 0}, color:[0,0,0,0]})
+		map.objects.push({
+			type: 'prism',
+			pos:  pos    || [0,0,0],
+			size: size   || [0,0,0],
+			scale: scale  || {point: [0,0,0], s: [1,1,1]},
+			color:color  || [0,0,0,0],
+			rotateZ: rotateZ || {point: [0,0,0], yaw: 0},
+		});
+	};
+	this.undo = function(map) {
+		map.objects.pop();
+	};
+}
+
+function AddPyramid(pos, size, color, scale, rotateZ) {
+	this.redo = function(map) {
+		map.objects.push({
+			type: 'pyramid',
+			pos:  pos     || [0,0,0],
+			size: size    || [0,0,0],
+			scale: scale  || {point: [0,0,0], s: [1,1,1]},
+			color: color  || [0,0,0,0],
+			rotateZ: rotateZ || {point: [0,0,0], yaw: 0},
+		});
 	};
 	this.undo = function(map) {
 		map.objects.pop();
@@ -45,6 +68,18 @@ function ResizePrism(id, size) {
 	};
 }
 
+function Scale(id, scale) {
+	var old;
+	this.redo = function(map) {
+		var obj = map.objects[id];
+		old = obj.scale;
+		obj.scale = scale;
+	};
+	this.undo = function(map) {
+		map.objects[id].scale = old;
+	};
+}
+
 function Move(id, pos) {
 	var old;
 	this.redo = function(map) {
@@ -67,12 +102,27 @@ function RotateZ(id, point, yaw) {
 	this.undo = function(map) {
 		map.objects[id].rotateZ = old;
 	};
-};
+}
+
+function RotateZ(id, point, yaw) {
+	var old;
+	this.redo = function(map) {
+		var obj = map.objects[id];
+		old = obj.rotateZ;
+		obj.rotateZ = {point: point, yaw: yaw};
+	};
+	this.undo = function(map) {
+		map.objects[id].rotateZ = old;
+	};
+}
 
 module.exports = {
 	Delete: Delete,
 	AddPrism: AddPrism,
+	AddPyramid: AddPyramid,
+	SetColor: SetColor,
 	ResizePrism: ResizePrism,
+	Scale: Scale,
 	Move: Move,
 	RotateZ: RotateZ,
 };
@@ -124,6 +174,35 @@ window.redactor = new Redactor(new Map(iso));
 redactor.run(new commands.AddPrism([ 1, 0, 0], [4,4,2]));
 redactor.run(new commands.AddPrism([ 0, 0, 0], [1,4,1]));
 redactor.run(new commands.AddPrism([-1, 1, 0], [1,2,1]));
+
+redactor.run(new commands.AddPyramid([2, 3, 3], [1,1,1]));
+redactor.run(new commands.SetColor(redactor.map.objects.length-1, [180,180,0,0]));
+redactor.run(new commands.Scale(redactor.map.objects.length-1, {point:[2,4,3], s:[0.5]}));
+
+redactor.run(new commands.AddPyramid([4, 3, 3], [1,1,1]));
+redactor.run(new commands.SetColor(redactor.map.objects.length-1, [180,0,180,0]));
+redactor.run(new commands.Scale(redactor.map.objects.length-1, {point:[5,4,3], s:[0.5]}));
+
+redactor.run(new commands.AddPyramid([4, 1, 3], [1,1,1]));
+redactor.run(new commands.SetColor(redactor.map.objects.length-1, [0,180,0,0]));
+redactor.run(new commands.Scale(redactor.map.objects.length-1, {point:[5,1,3], s:[0.5]}));
+
+redactor.run(new commands.AddPyramid([2, 1, 3], [1,1,1]));
+redactor.run(new commands.SetColor(redactor.map.objects.length-1, [40,180,40,0]));
+redactor.run(new commands.Scale(redactor.map.objects.length-1, {point:[2,1,3], s:[0.5]}));
+
+  //iso.add(Shape.Pyramid(new Point(2, 3, 3))
+    //.scale(new Point(2, 4, 3), 0.5),
+    //new Color(180, 180, 0));
+  //iso.add(Shape.Pyramid(new Point(4, 3, 3))
+    //.scale(new Point(5, 4, 3), 0.5),
+    //new Color(180, 0, 180));
+  //iso.add(Shape.Pyramid(new Point(4, 1, 3))
+    //.scale(new Point(5, 1, 3), 0.5),
+    //new Color(0, 180, 180));
+  //iso.add(Shape.Pyramid(new Point(2, 1, 3))
+    //.scale(new Point(2, 1, 3), 0.5),
+    //new Color(40, 180, 40));
 redactor.run(new commands.Delete(2));
 redactor.run(new commands.ResizePrism(1, [1,3,1]));
 redactor.run(new commands.RotateZ(1, [1/2,3/2,1/2], Math.PI/8));
@@ -145,15 +224,24 @@ function Map(iso) {
 	this.render = function() {
 		for (var i=0, l=this.objects.length; i<l; i++) {
 			var obj = this.objects[i];
+
+			var pos = obj.pos;
+			var size = obj.size;
+			var rotPoint = Isomer.Point.apply(null, obj.rotateZ.point);
+			var scalePoint = Isomer.Point.apply(null, obj.scale.point);
+			var color = new Isomer.Color(obj.color[0], obj.color[1], obj.color[2], obj.color[3]);
+
 			switch(obj.type) {
 			case 'prism':
-				var pos = obj.pos;
-				var size = obj.size;
-				var rotPoint = Isomer.Point.apply(null, obj.rotateZ.point);
-				var color = new Isomer.Color(obj.color[0], obj.color[1], obj.color[2], obj.color[3]);
 				var prism = Isomer.Shape.Prism(Isomer.Point.apply(null, pos), size[0], size[1], size[2]);
-				this.iso.add(prism.rotateZ(rotPoint, obj.rotateZ.yaw), color);
+				this.iso.add(prism.rotateZ(rotPoint, obj.rotateZ.yaw).scale(scalePoint, obj.scale.s[0], obj.scale.s[1], obj.scale.s[2]), color);
 				break;
+
+			case 'pyramid':
+				var pyramid = Isomer.Shape.Pyramid(Isomer.Point.apply(null, pos), size[0], size[1], size[2]);
+				this.iso.add(pyramid.rotateZ(rotPoint, obj.rotateZ.yaw).scale(scalePoint, obj.scale.s[0], obj.scale.s[1], obj.scale.s[2]), color);
+				break;
+
 			default:
 				console.warn('fail obj.type', obj);
 			}
@@ -207,6 +295,7 @@ function Redactor(map) {
 		command.redo(this.map);
 		this.commands.push(command);
 		this.current++;
+		$.UIkit.notify(command.constructor.name, msg_success);
 		console.log('run', command.constructor.name)
 	};
  
