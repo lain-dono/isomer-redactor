@@ -240,6 +240,8 @@ function Map(iso) {
 module.exports = Map;
 
 },{}],4:[function(require,module,exports){
+var commands = require('./commands');
+
 function Redactor(map) {
 	this.commands = [];
 	this.current = 0;
@@ -259,6 +261,26 @@ function Redactor(map) {
 
 	var list_class = '#obj-list';
 	var $list = $(list_class);
+
+	$('#AddPrism').click(function() {
+		var x = $('#AddPrismModal #x').value,
+			y = $('#AddPrismModal #y').value,
+			z = $('#AddPrismModal #z').value,
+			dx = $('#AddPrismModal #dx').value,
+			dy = $('#AddPrismModal #dy').value,
+			dz = $('#AddPrismModal #dz').value;
+		that.run(new commands.AddPrism([x, y, z], [dx, dy, dz]));
+	});
+
+	$('#AddPyramid').click(function() {
+		var x = $('#AddPyramidModal #x').value,
+			y = $('#AddPyramidModal #y').value,
+			z = $('#AddPyramidModal #z').value,
+			dx = $('#AddPyramidModal #dx').value,
+			dy = $('#AddPyramidModal #dy').value,
+			dz = $('#AddPyramidModal #dz').value;
+		that.run(new commands.AddPyramid([x, y, z], [dx, dy, dz]));
+	});
 
 	var active = -1;
 	var set_active = function(id) {
@@ -361,4 +383,4 @@ function Redactor(map) {
 
 module.exports = Redactor;
 
-},{}]},{},[2])
+},{"./commands":1}]},{},[2])

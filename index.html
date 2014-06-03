@@ -26,11 +26,12 @@ html, body {
 	</div>
 	<ul class="uk-navbar-nav">
 		<li class="uk-parent" data-uk-dropdown="">
-			<a href="">Add <i class="uk-icon-caret-down"></i></a>
+			<a href="#">Add <i class="uk-icon-caret-down"></i></a>
 
 			<div style="" class="uk-dropdown uk-dropdown-navbar">
 				<ul class="uk-nav uk-nav-navbar">
-					<li><a href="#"></a></li>
+					<li><a data-uk-modal="{target:'#AddPrismModal',bgclose:false}" href="#">Add Prism</a></li>
+					<li><a data-uk-modal="{target:'#AddPyramidModal',bgclose:false}" href="#">Add Pyramid</a></li>
 					<!--<li><a href="#">Item</a></li>
 					<li><a href="#">Another item</a></li>
 					<li class="uk-nav-header">Header</li>
@@ -62,6 +63,84 @@ html, body {
 		</ul>
 	</div>
 </div>
+
+<div id="AddPrismModal" class="uk-modal">
+	<div class="uk-modal-dialog">
+		<a class="uk-modal-close uk-close"></a>
+		<form class="uk-form uk-form-stacked">
+			<fieldset>
+				<legend>Add Prism</legend>
+
+				<div class="uk-form-row">
+					<span class="uk-form-label" for="">Position</span>
+					<div class="uk-form-controls uk-form-controls-text">
+						<p class="uk-form-controls-condensed">
+							<label for="x">X</label> <input id="x" value="0" class="uk-form-width-small uk-form-small" type="number">
+							<label for="y">Y</label> <input id="y" value="0" class="uk-form-width-small uk-form-small" type="number">
+							<label for="z">Z</label> <input id="z" value="0" class="uk-form-width-small uk-form-small" type="number">
+						</p>
+					</div>
+				</div>
+
+				<div class="uk-form-row">
+					<span class="uk-form-label" for="">Size</span>
+					<div class="uk-form-controls uk-form-controls-text">
+						<p class="uk-form-controls-condensed">
+							<label for="dx">X</label> <input id="dx" value="1" class="uk-form-width-small uk-form-small" type="number">
+							<label for="dy">Y</label> <input id="dy" value="1" class="uk-form-width-small uk-form-small" type="number">
+							<label for="dz">Z</label> <input id="dz" value="1" class="uk-form-width-small uk-form-small" type="number">
+						</p>
+					</div>
+				</div>
+
+				<div class="uk-form-row">
+					<a id="AddPrism" class="uk-modal-close uk-button uk-button-primary">Add</a>
+				</div>
+
+			</fieldset>
+		</form>
+	</div>
+</div>
+
+
+<div id="AddPyramidModal" class="uk-modal">
+	<div class="uk-modal-dialog">
+		<a class="uk-modal-close uk-close"></a>
+		<form class="uk-form uk-form-stacked">
+			<fieldset>
+				<legend>Add Pyramid</legend>
+
+				<div class="uk-form-row">
+					<span class="uk-form-label" for="">Position</span>
+					<div class="uk-form-controls uk-form-controls-text">
+						<p class="uk-form-controls-condensed">
+							<label for="x">X</label> <input id="x" value="0" class="uk-form-width-small uk-form-small" type="number">
+							<label for="y">Y</label> <input id="y" value="0" class="uk-form-width-small uk-form-small" type="number">
+							<label for="z">Z</label> <input id="z" value="0" class="uk-form-width-small uk-form-small" type="number">
+						</p>
+					</div>
+				</div>
+
+				<div class="uk-form-row">
+					<span class="uk-form-label" for="">Size</span>
+					<div class="uk-form-controls uk-form-controls-text">
+						<p class="uk-form-controls-condensed">
+							<label for="dx">X</label> <input id="dx" value="1" class="uk-form-width-small uk-form-small" type="number">
+							<label for="dy">Y</label> <input id="dy" value="1" class="uk-form-width-small uk-form-small" type="number">
+							<label for="dz">Z</label> <input id="dz" value="1" class="uk-form-width-small uk-form-small" type="number">
+						</p>
+					</div>
+				</div>
+
+				<div class="uk-form-row">
+					<a id="AddPyramid" class="uk-modal-close uk-button uk-button-primary">Add</a>
+				</div>
+
+			</fieldset>
+		</form>
+	</div>
+</div>
+
 <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/uikit/2.6.0/js/uikit.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/uikit/2.6.0/js/addons/notify.min.js"></script>
