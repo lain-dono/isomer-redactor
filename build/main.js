@@ -191,18 +191,6 @@ redactor.run(new commands.AddPyramid([2, 1, 3], [1,1,1]));
 redactor.run(new commands.SetColor(redactor.map.objects.length-1, [40,180,40,0]));
 redactor.run(new commands.Scale(redactor.map.objects.length-1, {point:[2,1,3], s:[0.5]}));
 
-  //iso.add(Shape.Pyramid(new Point(2, 3, 3))
-    //.scale(new Point(2, 4, 3), 0.5),
-    //new Color(180, 180, 0));
-  //iso.add(Shape.Pyramid(new Point(4, 3, 3))
-    //.scale(new Point(5, 4, 3), 0.5),
-    //new Color(180, 0, 180));
-  //iso.add(Shape.Pyramid(new Point(4, 1, 3))
-    //.scale(new Point(5, 1, 3), 0.5),
-    //new Color(0, 180, 180));
-  //iso.add(Shape.Pyramid(new Point(2, 1, 3))
-    //.scale(new Point(2, 1, 3), 0.5),
-    //new Color(40, 180, 40));
 redactor.run(new commands.Delete(2));
 redactor.run(new commands.ResizePrism(1, [1,3,1]));
 redactor.run(new commands.RotateZ(1, [1/2,3/2,1/2], Math.PI/8));
@@ -257,6 +245,7 @@ function Redactor(map) {
 	this.current = 0;
 	this.map = map;
 
+	// FIXME add Backbone or other for UI and move all to other files
 
 	$.UIkit.notify({
 		message : 'Hello Kitty!',
@@ -265,7 +254,47 @@ function Redactor(map) {
 		pos     : 'top-center'
 	});
 
+
 	var that = this;
+
+	var list_class = '#obj-list';
+	var $list = $(list_class);
+
+	var active = -1;
+	var set_active = function(id) {
+		console.info('set_active', id);
+		active = id;
+		$(list_class+' li a').each(function(index, element){
+			var $el = $(element);
+			// XXX hack
+			if($el.attr('id') != 'obj' + id) {
+				console.log('removeClass', $el.attr('id'));
+				$el.parent().removeClass('uk-active');
+			} else {
+				console.log('addClass', $el.attr('id'));
+				$el.parent().addClass('uk-active');
+			}
+		});
+	};
+	var sync_list = function() {
+		//that.map.objects
+		$list.html('');
+		for(var i=0, l=that.map.objects.length; i<l; i++) {
+			var obj = that.map.objects[i];
+			// XXX hack
+			var a = $('<a id="obj'+i+'" href="#">'+ i +' '+ obj.type +'</a>');
+			a.click(function(){
+				var $this = $(this);
+				// XXX hack
+				var id = $this.attr('id').slice(3) |0
+				set_active(id);
+				console.info('click', id);
+			});
+			var li = $('<li></li>');
+			$list.append(li.append(a));
+		}
+	};
+	sync_list();
 
 	var msg_success = {pos:'top-right', timeout:150, status:'success'};
 	var msg_danger  = {pos:'top-right', timeout:150, status:'danger'};
@@ -296,7 +325,9 @@ function Redactor(map) {
 		this.commands.push(command);
 		this.current++;
 		$.UIkit.notify(command.constructor.name, msg_success);
-		console.log('run', command.constructor.name)
+		console.info('run', command.constructor.name)
+		sync_list();
+		set_active(active);
 	};
  
 	this.undo = function(levels) {
@@ -307,7 +338,9 @@ function Redactor(map) {
 				count++;
 			}
 		}
-		console.log('undo '+ count +'('+ levels +')');
+		console.info('undo '+ count +'('+ levels +')');
+		sync_list();
+		set_active(active);
 		return count;
 	};
 
@@ -319,7 +352,9 @@ function Redactor(map) {
 				count++;
 			}
 		}
-		console.log('redo '+ count +'('+ levels +')');
+		console.info('redo '+ count +'('+ levels +')');
+		sync_list();
+		set_active(active);
 		return count;
 	};
 }
