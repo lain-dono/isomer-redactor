@@ -15,8 +15,9 @@ function AddPrism(pos, size, color, scale, rotateZ) {
 			type: 'prism',
 			pos:  pos    || [0,0,0],
 			size: size   || [0,0,0],
-			scale: scale  || {point: [0,0,0], s: [1,1,1]},
 			color:color  || [0,0,0,0],
+			modificators: [],
+			scale: scale  || {point: [0,0,0], s: [1,1,1]},
 			rotateZ: rotateZ || {point: [0,0,0], yaw: 0},
 		});
 	};
@@ -31,8 +32,26 @@ function AddPyramid(pos, size, color, scale, rotateZ) {
 			type: 'pyramid',
 			pos:  pos     || [0,0,0],
 			size: size    || [0,0,0],
-			scale: scale  || {point: [0,0,0], s: [1,1,1]},
 			color: color  || [0,0,0,0],
+			modificators: [],
+			scale: scale  || {point: [0,0,0], s: [1,1,1]},
+			rotateZ: rotateZ || {point: [0,0,0], yaw: 0},
+		});
+	};
+	this.undo = function(map) {
+		map.objects.pop();
+	};
+}
+
+function AddCylinder(pos, size, color, scale, rotateZ) {
+	this.redo = function(map) {
+		map.objects.push({
+			type: 'cylinder',
+			pos:  pos     || [0,0,0],
+			size: size    || [0,0,0],
+			color: color  || [0,0,0,0],
+			modificators: [],
+			scale: scale  || {point: [0,0,0], s: [1,1,1]},
 			rotateZ: rotateZ || {point: [0,0,0], yaw: 0},
 		});
 	};
@@ -119,6 +138,7 @@ module.exports = {
 	Delete: Delete,
 	AddPrism: AddPrism,
 	AddPyramid: AddPyramid,
+	AddCylinder: AddCylinder,
 	SetColor: SetColor,
 	ResizePrism: ResizePrism,
 	Scale: Scale,

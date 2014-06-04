@@ -16,8 +16,9 @@ function AddPrism(pos, size, color, scale, rotateZ) {
 			type: 'prism',
 			pos:  pos    || [0,0,0],
 			size: size   || [0,0,0],
-			scale: scale  || {point: [0,0,0], s: [1,1,1]},
 			color:color  || [0,0,0,0],
+			modificators: [],
+			scale: scale  || {point: [0,0,0], s: [1,1,1]},
 			rotateZ: rotateZ || {point: [0,0,0], yaw: 0},
 		});
 	};
@@ -32,8 +33,26 @@ function AddPyramid(pos, size, color, scale, rotateZ) {
 			type: 'pyramid',
 			pos:  pos     || [0,0,0],
 			size: size    || [0,0,0],
-			scale: scale  || {point: [0,0,0], s: [1,1,1]},
 			color: color  || [0,0,0,0],
+			modificators: [],
+			scale: scale  || {point: [0,0,0], s: [1,1,1]},
+			rotateZ: rotateZ || {point: [0,0,0], yaw: 0},
+		});
+	};
+	this.undo = function(map) {
+		map.objects.pop();
+	};
+}
+
+function AddCylinder(pos, size, color, scale, rotateZ) {
+	this.redo = function(map) {
+		map.objects.push({
+			type: 'cylinder',
+			pos:  pos     || [0,0,0],
+			size: size    || [0,0,0],
+			color: color  || [0,0,0,0],
+			modificators: [],
+			scale: scale  || {point: [0,0,0], s: [1,1,1]},
 			rotateZ: rotateZ || {point: [0,0,0], yaw: 0},
 		});
 	};
@@ -120,6 +139,7 @@ module.exports = {
 	Delete: Delete,
 	AddPrism: AddPrism,
 	AddPyramid: AddPyramid,
+	AddCylinder: AddCylinder,
 	SetColor: SetColor,
 	ResizePrism: ResizePrism,
 	Scale: Scale,
@@ -195,6 +215,8 @@ redactor.run(new commands.Delete(2));
 redactor.run(new commands.ResizePrism(1, [1,3,1]));
 redactor.run(new commands.RotateZ(1, [1/2,3/2,1/2], Math.PI/8));
 
+redactor.run(new commands.AddCylinder([0, 2, 0], [1,30,2]));
+
 requestAnimFrame(animate);
 
 function animate() {
@@ -215,23 +237,37 @@ function Map(iso) {
 
 			var pos = obj.pos;
 			var size = obj.size;
-			var rotPoint = Isomer.Point.apply(null, obj.rotateZ.point);
-			var scalePoint = Isomer.Point.apply(null, obj.scale.point);
 			var color = new Isomer.Color(obj.color[0], obj.color[1], obj.color[2], obj.color[3]);
+
+			var add = null;
 
 			switch(obj.type) {
 			case 'prism':
-				var prism = Isomer.Shape.Prism(Isomer.Point.apply(null, pos), size[0], size[1], size[2]);
-				this.iso.add(prism.rotateZ(rotPoint, obj.rotateZ.yaw).scale(scalePoint, obj.scale.s[0], obj.scale.s[1], obj.scale.s[2]), color);
+				add = Isomer.Shape.Prism(Isomer.Point.apply(null, pos), size[0], size[1], size[2]);
 				break;
 
 			case 'pyramid':
-				var pyramid = Isomer.Shape.Pyramid(Isomer.Point.apply(null, pos), size[0], size[1], size[2]);
-				this.iso.add(pyramid.rotateZ(rotPoint, obj.rotateZ.yaw).scale(scalePoint, obj.scale.s[0], obj.scale.s[1], obj.scale.s[2]), color);
+				add = Isomer.Shape.Pyramid(Isomer.Point.apply(null, pos), size[0], size[1], size[2]);
+				break;
+
+			case 'cylinder':
+				add = Isomer.Shape.Cylinder(Isomer.Point.apply(null, pos), size[0], size[1], size[2]);
 				break;
 
 			default:
 				console.warn('fail obj.type', obj);
+			}
+
+			if(add) {
+				if(obj.rotateZ) {
+					var rotPoint = Isomer.Point.apply(null, obj.rotateZ.point);
+					add = add.rotateZ(rotPoint, obj.rotateZ.yaw);
+				}
+				if(obj.scale) {
+					var scalePoint = Isomer.Point.apply(null, obj.scale.point);
+					add = add.scale(scalePoint, obj.scale.s[0], obj.scale.s[1], obj.scale.s[2]);
+				}
+				this.iso.add(add, color);
 			}
 		}
 	};

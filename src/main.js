@@ -65,6 +65,8 @@ redactor.run(new commands.Delete(2));
 redactor.run(new commands.ResizePrism(1, [1,3,1]));
 redactor.run(new commands.RotateZ(1, [1/2,3/2,1/2], Math.PI/8));
 
+redactor.run(new commands.AddCylinder([0, 2, 0], [1,30,2]));
+
 requestAnimFrame(animate);
 
 function animate() {
