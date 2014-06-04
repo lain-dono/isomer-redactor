@@ -1,5 +1,7 @@
 "use strict";
 
+var Isomer = require('isomer');
+
 function Map(iso) {
 	this.iso = iso;
 	this.objects = [];
@@ -37,7 +39,6 @@ function Map(iso) {
 
 			switch(obj.type) {
 			case 'prism':
-				//add = Isomer.Shape.Prism(Isomer.Point.apply(null, pos), size[0], size[1], size[2]);
 				add = Isomer.Shape.Prism(Isomer.Point.apply(null, pos), obj.dx, obj.dy, obj.dz);
 				break;
 			case 'pyramid':

@@ -2,6 +2,8 @@
 
 console.log('start');
 
+window.Isomer = require('isomer');
+
 window.commands = require('./commands');
 var Redactor = require('./redactor');
 var Map = require('./map');
@@ -10,9 +12,10 @@ var w = $('#canvas').width(),
 	h = $('#canvas').height(),
 	stage = new PIXI.Stage(0xCC0000, true),
 	renderer = PIXI.autoDetectRenderer(w, h);
+
 $('#canvas').append(renderer.view);
 
-var iso = new Isomer(renderer.view);
+window.iso = new Isomer(renderer.view);
 iso.canvas = new PIXI.Graphics();
 stage.addChild(iso.canvas);
 
