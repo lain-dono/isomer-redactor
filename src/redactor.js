@@ -1,9 +1,50 @@
+"use strict";
+
 var commands = require('./commands');
 
 function Redactor(map) {
 	this.commands = [];
 	this.current = 0;
 	this.map = map;
+
+	this.render = function() {
+		//this.map.canvas.drawRect(x, y, width, height);
+		// grid
+		//
+		var iso = this.map.iso;
+
+		var ctx = iso.canvas;
+		ctx.clear();
+		ctx.lineStyle(1, 0xCCCCCC, 1);
+		for(x=-20; x<21; x++) {
+				var s1 = this.map.iso._translatePoint(Isomer.Point(x, -20, 0));
+				var e1 = this.map.iso._translatePoint(Isomer.Point(x, +20, 0));
+				var s2 = this.map.iso._translatePoint(Isomer.Point(-20, x, 0));
+				var e2 = this.map.iso._translatePoint(Isomer.Point(+20, x, 0));
+				ctx.moveTo(s1.x, s1.y);
+				ctx.lineTo(e1.x, e1.y);
+				ctx.moveTo(s2.x, s2.y);
+				ctx.lineTo(e2.x, e2.y);
+		}
+
+		ctx.lineStyle(0);
+		this.map.render();
+
+		ctx.lineStyle(3, 0xCC0000, 1);
+		var obj = this.map.objects[active];
+		if(obj) {
+			var item = this.map._render_one(obj);
+			if (item instanceof Isomer.Shape) {
+				var paths = item.orderedPaths();
+				for (var i in paths) {
+					ctx.path_line(paths[i].points.map(iso._translatePoint.bind(iso)));
+				}
+			}
+			if (item instanceof Isomer.Path) {
+				ctx.path_line(item.points.map(iso._translatePoint.bind(iso)));
+			}
+		}
+	}
 
 	// FIXME add Backbone or other for UI and move all to other files
 
@@ -38,6 +79,16 @@ function Redactor(map) {
 			dy = $('#AddPyramidModal #dy').value,
 			dz = $('#AddPyramidModal #dz').value;
 		that.run(new commands.AddPyramid([x, y, z], [dx, dy, dz]));
+	});
+
+	$('#AddCylinder').click(function() {
+		var x = $('#AddCylinderModal#x').value,
+			y = $('#AddCylinderModal#y').value,
+			z = $('#AddCylinderModal #z').value,
+			radius = $('#AddCylinderModal #radius').value,
+			vertices = $('#AddCylinderModal #vertices').value,
+			height = $('#AddCylinderModal #height').value;
+		that.run(new commands.AddCylinder([x, y, z], [radius, vertices, height]));
 	});
 
 	var active = -1;
@@ -106,7 +157,7 @@ function Redactor(map) {
 		sync_list();
 		set_active(active);
 	};
- 
+
 	this.undo = function(levels) {
 		var count=0;
 		for (var i=0; i < levels; i++) {
