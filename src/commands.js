@@ -9,15 +9,16 @@ function Delete(id) {
 		map.objects = [].concat(left, obj, right)
 	};
 }
-function AddPrism(pos, size, color, scale, rotateZ) {
+function AddPrism(pos, size, color) {
 	this.redo = function(map) {
 		map.objects.push({
 			type: 'prism',
 			pos:  pos    || [0,0,0],
-			size: size   || [0,0,0],
-			scale: scale  || {point: [0,0,0], s: [1,1,1]},
+			dx: size[0],
+			dy: size[1],
+			dz: size[2],
 			color:color  || [0,0,0,0],
-			rotateZ: rotateZ || {point: [0,0,0], yaw: 0},
+			modificators: [],
 		});
 	};
 	this.undo = function(map) {
@@ -25,15 +26,33 @@ function AddPrism(pos, size, color, scale, rotateZ) {
 	};
 }
 
-function AddPyramid(pos, size, color, scale, rotateZ) {
+function AddPyramid(pos, size, color) {
 	this.redo = function(map) {
 		map.objects.push({
 			type: 'pyramid',
 			pos:  pos     || [0,0,0],
-			size: size    || [0,0,0],
-			scale: scale  || {point: [0,0,0], s: [1,1,1]},
+			dx: size[0],
+			dy: size[1],
+			dz: size[2],
 			color: color  || [0,0,0,0],
-			rotateZ: rotateZ || {point: [0,0,0], yaw: 0},
+			modificators: [],
+		});
+	};
+	this.undo = function(map) {
+		map.objects.pop();
+	};
+}
+
+function AddCylinder(pos, size, color) {
+	this.redo = function(map) {
+		map.objects.push({
+			type: 'cylinder',
+			pos:  pos     || [0,0,0],
+			radius: size[0],
+			vertices: size[1],
+			height: size[2],
+			color: color  || [0,0,0,0],
+			modificators: [],
 		});
 	};
 	this.undo = function(map) {
@@ -54,7 +73,7 @@ function SetColor(id, color) {
 	};
 }
 
-function ResizePrism(id, size) {
+function Resize(id, size) {
 	var old;
 	this.redo = function(map) {
 		var obj = map.objects[id];
@@ -64,18 +83,6 @@ function ResizePrism(id, size) {
 	this.undo = function(map) {
 		var obj = map.objects[id];
 		obj.size = old;
-	};
-}
-
-function Scale(id, scale) {
-	var old;
-	this.redo = function(map) {
-		var obj = map.objects[id];
-		old = obj.scale;
-		obj.scale = scale;
-	};
-	this.undo = function(map) {
-		map.objects[id].scale = old;
 	};
 }
 
@@ -91,37 +98,24 @@ function Move(id, pos) {
 	};
 }
 
-function RotateZ(id, point, yaw) {
-	var old;
+function Modificator(id, mod) {
 	this.redo = function(map) {
-		var obj = map.objects[id];
-		old = obj.rotateZ;
-		obj.rotateZ = {point: point, yaw: yaw};
+		map.objects[id].modificators.push(mod);
 	};
 	this.undo = function(map) {
-		map.objects[id].rotateZ = old;
+		map.objects[id].modificators.pop();
 	};
 }
 
-function RotateZ(id, point, yaw) {
-	var old;
-	this.redo = function(map) {
-		var obj = map.objects[id];
-		old = obj.rotateZ;
-		obj.rotateZ = {point: point, yaw: yaw};
-	};
-	this.undo = function(map) {
-		map.objects[id].rotateZ = old;
-	};
-}
 
 module.exports = {
 	Delete: Delete,
 	AddPrism: AddPrism,
 	AddPyramid: AddPyramid,
+	AddCylinder: AddCylinder,
+
 	SetColor: SetColor,
-	ResizePrism: ResizePrism,
-	Scale: Scale,
+	Resize: Resize,
 	Move: Move,
-	RotateZ: RotateZ,
+	Modificator: Modificator,
 };
