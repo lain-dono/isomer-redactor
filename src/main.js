@@ -10,7 +10,7 @@ var Map = require('./map');
 
 var w = $('#canvas').width(),
 	h = $('#canvas').height(),
-	stage = new PIXI.Stage(0xCC0000, true),
+	stage = new PIXI.Stage(0xFFFFFF, true),
 	renderer = PIXI.autoDetectRenderer(w, h);
 
 $('#canvas').append(renderer.view);
@@ -18,6 +18,16 @@ $('#canvas').append(renderer.view);
 window.iso = new Isomer(renderer.view);
 iso.canvas = new PIXI.Graphics();
 stage.addChild(iso.canvas);
+
+iso.canvas.path_line = function (points) {
+	this.moveTo(points[0].x, points[0].y);
+
+	for (var i = 1; i < points.length; i++) {
+		this.lineTo(points[i].x, points[i].y);
+	}
+
+	this.lineTo(points[0].x, points[0].y);
+}
 
 iso.canvas.path = function (points, color) {
 	var c = color.r * 256 * 256 + color.g * 256 + color.b;
@@ -90,8 +100,7 @@ redactor.run(new commands.AddShape([
 requestAnimFrame(animate);
 
 function animate() {
-	iso.canvas.clear();
-	redactor.map.render();
+	redactor.render();
 
 	renderer.render(stage);
 	requestAnimFrame(animate);

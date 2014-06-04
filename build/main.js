@@ -963,7 +963,7 @@ var Map = require('./map');
 
 var w = $('#canvas').width(),
 	h = $('#canvas').height(),
-	stage = new PIXI.Stage(0xCC0000, true),
+	stage = new PIXI.Stage(0xFFFFFF, true),
 	renderer = PIXI.autoDetectRenderer(w, h);
 
 $('#canvas').append(renderer.view);
@@ -971,6 +971,16 @@ $('#canvas').append(renderer.view);
 window.iso = new Isomer(renderer.view);
 iso.canvas = new PIXI.Graphics();
 stage.addChild(iso.canvas);
+
+iso.canvas.path_line = function (points) {
+	this.moveTo(points[0].x, points[0].y);
+
+	for (var i = 1; i < points.length; i++) {
+		this.lineTo(points[i].x, points[i].y);
+	}
+
+	this.lineTo(points[0].x, points[0].y);
+}
 
 iso.canvas.path = function (points, color) {
 	var c = color.r * 256 * 256 + color.g * 256 + color.b;
@@ -1043,8 +1053,7 @@ redactor.run(new commands.AddShape([
 requestAnimFrame(animate);
 
 function animate() {
-	iso.canvas.clear();
-	redactor.map.render();
+	redactor.render();
 
 	renderer.render(stage);
 	requestAnimFrame(animate);
@@ -1080,44 +1089,46 @@ function Map(iso) {
 		}
 		return add;
 	};
+	this._render_one = function(obj) {
+		var add = null;
+
+		switch(obj.type) {
+		case 'prism':
+			var pos = obj.pos;
+			add = Isomer.Shape.Prism(Isomer.Point.apply(null, pos), obj.dx, obj.dy, obj.dz);
+			break;
+		case 'pyramid':
+			var pos = obj.pos;
+			add = Isomer.Shape.Pyramid(Isomer.Point.apply(null, pos), obj.dx, obj.dy, obj.dz);
+			break;
+		case 'cylinder':
+			var pos = obj.pos;
+			add = Isomer.Shape.Cylinder(Isomer.Point.apply(null, pos), obj.radius, obj.vertices, obj.height);
+			break;
+		case 'path':
+			add = new Isomer.Path(obj.path.map(function(el) {
+				return Isomer.Point.apply(null, el);
+			}));
+			break;
+		case 'shape':
+			add = Isomer.Shape.extrude(new Isomer.Path(obj.path.map(function(el) {
+				return Isomer.Point.apply(null, el);
+			})), obj.height);
+			break;
+		default:
+			console.warn('fail obj.type', obj);
+		}
+
+		return (add && mod(add, obj)) || null;
+	}
 
 	this.render = function() {
 		for (var i=0, l=this.objects.length; i<l; i++) {
 			var obj = this.objects[i];
+			var add = this._render_one(obj);
+
 			var color = new Isomer.Color(obj.color[0], obj.color[1], obj.color[2], obj.color[3]);
-
-			var add = null;
-
-			switch(obj.type) {
-			case 'prism':
-				var pos = obj.pos;
-				add = Isomer.Shape.Prism(Isomer.Point.apply(null, pos), obj.dx, obj.dy, obj.dz);
-				break;
-			case 'pyramid':
-				var pos = obj.pos;
-				add = Isomer.Shape.Pyramid(Isomer.Point.apply(null, pos), obj.dx, obj.dy, obj.dz);
-				break;
-			case 'cylinder':
-				var pos = obj.pos;
-				add = Isomer.Shape.Cylinder(Isomer.Point.apply(null, pos), obj.radius, obj.vertices, obj.height);
-				break;
-			case 'path':
-				add = new Isomer.Path(obj.path.map(function(el) {
-					return Isomer.Point.apply(null, el);
-				}));
-				break;
-			case 'shape':
-				add = Isomer.Shape.extrude(new Isomer.Path(obj.path.map(function(el) {
-					return Isomer.Point.apply(null, el);
-				})), obj.height);
-				break;
-			default:
-				console.warn('fail obj.type', obj);
-			}
-
-			if(add) {
-				this.iso.add(mod(add, obj), color);
-			}
+			add && this.iso.add(add, color);
 		}
 	};
 }
@@ -1133,6 +1144,45 @@ function Redactor(map) {
 	this.commands = [];
 	this.current = 0;
 	this.map = map;
+
+	this.render = function() {
+		//this.map.canvas.drawRect(x, y, width, height);
+		// grid
+		//
+		var iso = this.map.iso;
+
+		var ctx = iso.canvas;
+		ctx.clear();
+		ctx.lineStyle(1, 0xCCCCCC, 1);
+		for(x=-20; x<21; x++) {
+				var s1 = this.map.iso._translatePoint(Isomer.Point(x, -20, 0));
+				var e1 = this.map.iso._translatePoint(Isomer.Point(x, +20, 0));
+				var s2 = this.map.iso._translatePoint(Isomer.Point(-20, x, 0));
+				var e2 = this.map.iso._translatePoint(Isomer.Point(+20, x, 0));
+				ctx.moveTo(s1.x, s1.y);
+				ctx.lineTo(e1.x, e1.y);
+				ctx.moveTo(s2.x, s2.y);
+				ctx.lineTo(e2.x, e2.y);
+		}
+
+		ctx.lineStyle(0);
+		this.map.render();
+
+		ctx.lineStyle(3, 0xCC0000, 1);
+		var obj = this.map.objects[active];
+		if(obj) {
+			var item = this.map._render_one(obj);
+			if (item instanceof Isomer.Shape) {
+				var paths = item.orderedPaths();
+				for (var i in paths) {
+					ctx.path_line(paths[i].points.map(iso._translatePoint.bind(iso)));
+				}
+			}
+			if (item instanceof Isomer.Path) {
+				ctx.path_line(item.points.map(iso._translatePoint.bind(iso)));
+			}
+		}
+	}
 
 	// FIXME add Backbone or other for UI and move all to other files
 
@@ -1167,6 +1217,16 @@ function Redactor(map) {
 			dy = $('#AddPyramidModal #dy').value,
 			dz = $('#AddPyramidModal #dz').value;
 		that.run(new commands.AddPyramid([x, y, z], [dx, dy, dz]));
+	});
+
+	$('#AddCylinder').click(function() {
+		var x = $('#AddCylinderModal#x').value,
+			y = $('#AddCylinderModal#y').value,
+			z = $('#AddCylinderModal #z').value,
+			radius = $('#AddCylinderModal #radius').value,
+			vertices = $('#AddCylinderModal #vertices').value,
+			height = $('#AddCylinderModal #height').value;
+		that.run(new commands.AddCylinder([x, y, z], [radius, vertices, height]));
 	});
 
 	var active = -1;
@@ -1235,7 +1295,7 @@ function Redactor(map) {
 		sync_list();
 		set_active(active);
 	};
- 
+
 	this.undo = function(levels) {
 		var count=0;
 		for (var i=0; i < levels; i++) {
