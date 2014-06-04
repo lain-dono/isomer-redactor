@@ -48,16 +48,13 @@ function Redactor(map) {
 			var $el = $(element);
 			// XXX hack
 			if($el.attr('id') != 'obj' + id) {
-				console.log('removeClass', $el.attr('id'));
 				$el.parent().removeClass('uk-active');
 			} else {
-				console.log('addClass', $el.attr('id'));
 				$el.parent().addClass('uk-active');
 			}
 		});
 	};
 	var sync_list = function() {
-		//that.map.objects
 		$list.html('');
 		for(var i=0, l=that.map.objects.length; i<l; i++) {
 			var obj = that.map.objects[i];
