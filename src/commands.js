@@ -11,6 +11,7 @@ function Delete(id) {
 		map.objects = [].concat(left, obj, right)
 	};
 }
+
 function AddPrism(pos, size, color) {
 	this.redo = function(map) {
 		map.objects.push({
@@ -53,6 +54,35 @@ function AddCylinder(pos, size, color) {
 			radius: size[0],
 			vertices: size[1],
 			height: size[2],
+			color: color  || [0,0,0,0],
+			modificators: [],
+		});
+	};
+	this.undo = function(map) {
+		map.objects.pop();
+	};
+}
+
+function AddPath(path, color) {
+	this.redo = function(map) {
+		map.objects.push({
+			type: 'path',
+			path: path,
+			color: color  || [0,0,0,0],
+			modificators: [],
+		});
+	};
+	this.undo = function(map) {
+		map.objects.pop();
+	};
+}
+
+function AddShape(path, height, color) {
+	this.redo = function(map) {
+		map.objects.push({
+			type: 'shape',
+			path: path,
+			height: height,
 			color: color  || [0,0,0,0],
 			modificators: [],
 		});
@@ -115,6 +145,8 @@ module.exports = {
 	AddPrism: AddPrism,
 	AddPyramid: AddPyramid,
 	AddCylinder: AddCylinder,
+	AddPath: AddPath,
+	AddShape: AddShape,
 
 	SetColor: SetColor,
 	Resize: Resize,

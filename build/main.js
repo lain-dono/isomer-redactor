@@ -807,6 +807,7 @@ function Delete(id) {
 		map.objects = [].concat(left, obj, right)
 	};
 }
+
 function AddPrism(pos, size, color) {
 	this.redo = function(map) {
 		map.objects.push({
@@ -849,6 +850,35 @@ function AddCylinder(pos, size, color) {
 			radius: size[0],
 			vertices: size[1],
 			height: size[2],
+			color: color  || [0,0,0,0],
+			modificators: [],
+		});
+	};
+	this.undo = function(map) {
+		map.objects.pop();
+	};
+}
+
+function AddPath(path, color) {
+	this.redo = function(map) {
+		map.objects.push({
+			type: 'path',
+			path: path,
+			color: color  || [0,0,0,0],
+			modificators: [],
+		});
+	};
+	this.undo = function(map) {
+		map.objects.pop();
+	};
+}
+
+function AddShape(path, height, color) {
+	this.redo = function(map) {
+		map.objects.push({
+			type: 'shape',
+			path: path,
+			height: height,
 			color: color  || [0,0,0,0],
 			modificators: [],
 		});
@@ -911,6 +941,8 @@ module.exports = {
 	AddPrism: AddPrism,
 	AddPyramid: AddPyramid,
 	AddCylinder: AddCylinder,
+	AddPath: AddPath,
+	AddShape: AddShape,
 
 	SetColor: SetColor,
 	Resize: Resize,
@@ -993,6 +1025,21 @@ redactor.run(new commands.Modificator(1, {type: 'rotateZ', point:[1/2,3/2,1/2], 
 
 redactor.run(new commands.AddCylinder([0, 2, 0], [1,30,2]));
 
+redactor.run(new commands.AddPrism([0,0,0], [3,3,1]));
+redactor.run(new commands.AddPath([
+  [1, 1, 1],
+  [2, 1, 1],
+  [2, 2, 1],
+  [1, 2, 1],
+], [50, 160, 60, 0]));
+
+redactor.run(new commands.AddShape([
+  [1, 1, 1],
+  [2, 1, 1],
+  [2, 3, 1],
+], 0.3, [50, 160, 60, 0]));
+
+
 requestAnimFrame(animate);
 
 function animate() {
@@ -1037,21 +1084,32 @@ function Map(iso) {
 	this.render = function() {
 		for (var i=0, l=this.objects.length; i<l; i++) {
 			var obj = this.objects[i];
-			var pos = obj.pos;
-			var size = obj.size;
 			var color = new Isomer.Color(obj.color[0], obj.color[1], obj.color[2], obj.color[3]);
 
 			var add = null;
 
 			switch(obj.type) {
 			case 'prism':
+				var pos = obj.pos;
 				add = Isomer.Shape.Prism(Isomer.Point.apply(null, pos), obj.dx, obj.dy, obj.dz);
 				break;
 			case 'pyramid':
+				var pos = obj.pos;
 				add = Isomer.Shape.Pyramid(Isomer.Point.apply(null, pos), obj.dx, obj.dy, obj.dz);
 				break;
 			case 'cylinder':
+				var pos = obj.pos;
 				add = Isomer.Shape.Cylinder(Isomer.Point.apply(null, pos), obj.radius, obj.vertices, obj.height);
+				break;
+			case 'path':
+				add = new Isomer.Path(obj.path.map(function(el) {
+					return Isomer.Point.apply(null, el);
+				}));
+				break;
+			case 'shape':
+				add = Isomer.Shape.extrude(new Isomer.Path(obj.path.map(function(el) {
+					return Isomer.Point.apply(null, el);
+				})), obj.height);
 				break;
 			default:
 				console.warn('fail obj.type', obj);

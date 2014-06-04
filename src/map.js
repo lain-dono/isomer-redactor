@@ -31,21 +31,32 @@ function Map(iso) {
 	this.render = function() {
 		for (var i=0, l=this.objects.length; i<l; i++) {
 			var obj = this.objects[i];
-			var pos = obj.pos;
-			var size = obj.size;
 			var color = new Isomer.Color(obj.color[0], obj.color[1], obj.color[2], obj.color[3]);
 
 			var add = null;
 
 			switch(obj.type) {
 			case 'prism':
+				var pos = obj.pos;
 				add = Isomer.Shape.Prism(Isomer.Point.apply(null, pos), obj.dx, obj.dy, obj.dz);
 				break;
 			case 'pyramid':
+				var pos = obj.pos;
 				add = Isomer.Shape.Pyramid(Isomer.Point.apply(null, pos), obj.dx, obj.dy, obj.dz);
 				break;
 			case 'cylinder':
+				var pos = obj.pos;
 				add = Isomer.Shape.Cylinder(Isomer.Point.apply(null, pos), obj.radius, obj.vertices, obj.height);
+				break;
+			case 'path':
+				add = new Isomer.Path(obj.path.map(function(el) {
+					return Isomer.Point.apply(null, el);
+				}));
+				break;
+			case 'shape':
+				add = Isomer.Shape.extrude(new Isomer.Path(obj.path.map(function(el) {
+					return Isomer.Point.apply(null, el);
+				})), obj.height);
 				break;
 			default:
 				console.warn('fail obj.type', obj);
