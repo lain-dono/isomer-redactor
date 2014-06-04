@@ -1,4 +1,6 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+"use strict";
+
 function Delete(id) {
 	var obj;
 	this.redo = function(map) {
@@ -122,14 +124,16 @@ module.exports = {
 };
 
 },{}],2:[function(require,module,exports){
+"use strict";
+
 console.log('start');
 
 window.commands = require('./commands');
 var Redactor = require('./redactor');
 var Map = require('./map');
 
-var w = $('#canvas').width();
-	h = $('#canvas').height();
+var w = $('#canvas').width(),
+	h = $('#canvas').height(),
 	stage = new PIXI.Stage(0xCC0000, true),
 	renderer = PIXI.autoDetectRenderer(w, h);
 $('#canvas').append(renderer.view);
@@ -202,6 +206,8 @@ function animate() {
 }
 
 },{"./commands":1,"./map":3,"./redactor":4}],3:[function(require,module,exports){
+"use strict";
+
 function Map(iso) {
 	this.iso = iso;
 	this.objects = [];
@@ -262,6 +268,8 @@ function Map(iso) {
 module.exports = Map;
 
 },{}],4:[function(require,module,exports){
+"use strict";
+
 var commands = require('./commands');
 
 function Redactor(map) {

@@ -1,11 +1,13 @@
+"use strict";
+
 console.log('start');
 
 window.commands = require('./commands');
 var Redactor = require('./redactor');
 var Map = require('./map');
 
-var w = $('#canvas').width();
-	h = $('#canvas').height();
+var w = $('#canvas').width(),
+	h = $('#canvas').height(),
 	stage = new PIXI.Stage(0xCC0000, true),
 	renderer = PIXI.autoDetectRenderer(w, h);
 $('#canvas').append(renderer.view);

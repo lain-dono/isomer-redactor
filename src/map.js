@@ -1,3 +1,5 @@
+"use strict";
+
 function Map(iso) {
 	this.iso = iso;
 	this.objects = [];

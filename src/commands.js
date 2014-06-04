@@ -1,3 +1,5 @@
+"use strict";
+
 function Delete(id) {
 	var obj;
 	this.redo = function(map) {

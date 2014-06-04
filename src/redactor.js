@@ -1,3 +1,5 @@
+"use strict";
+
 var commands = require('./commands');
 
 function Redactor(map) {
