@@ -1,11 +1,59 @@
 "use strict";
 
 var commands = require('./commands');
+var saveAs = require('filesaver.js');
+
+window.save = function() {
+	var blob = new Blob(["Hello, world!"], {type: "text/plain;charset=utf-8"});
+	saveAs(blob, "hello world.txt");
+}
 
 function Redactor(map) {
 	this.commands = [];
 	this.current = 0;
 	this.map = map;
+
+	var that = this;
+
+	$('#download').click(function() {
+		var blob = new Blob([JSON.stringify({objects:that.map.objects})], {type: "text/json;charset=utf-8"});
+		saveAs(blob, 'map.json');
+	});
+
+function handleFileSelect(event) {
+	event.stopPropagation();
+	event.preventDefault();
+
+	var files = event.dataTransfer.files; // FileList object.
+
+	// files is a FileList of File objects. List some properties.
+	//var output = [];
+	for (var i = 0, f; f = files[i]; i++) {
+		console.log(f.name, f.size, f.lastModifiedDate);
+		/*output.push('<li><strong>', escape(f.name), '</strong> (', f.type || 'n/a', ') - ',
+			f.size, ' bytes, last modified: ',
+			f.lastModifiedDate.toLocaleDateString(), '</li>');
+			*/
+	}
+
+	$('#UploadModal a.uk-close').click();
+}
+
+function handleDragOver(event) {
+	event.stopPropagation();
+	event.preventDefault();
+	event.dataTransfer.dropEffect = 'copy'; // Explicitly show this is a copy.
+	$('#upload-drop').addClass('uk-dragover');
+}
+function handleDragLeave(event) {
+	$('#upload-drop').removeClass('uk-dragover');
+}
+
+// Setup the dnd listeners.
+var dropZone = document.getElementById('upload-drop');
+dropZone.addEventListener('dragover', handleDragOver, false);
+dropZone.addEventListener('dragleave', handleDragLeave, false);
+dropZone.addEventListener('drop', handleFileSelect, false);
 
 	this.render = function() {
 		//this.map.canvas.drawRect(x, y, width, height);
@@ -55,40 +103,64 @@ function Redactor(map) {
 		pos     : 'top-center'
 	});
 
-
-	var that = this;
-
 	var list_class = '#obj-list';
 	var $list = $(list_class);
 
 	$('#AddPrism').click(function() {
-		var x = $('#AddPrismModal #x').value,
-			y = $('#AddPrismModal #y').value,
-			z = $('#AddPrismModal #z').value,
-			dx = $('#AddPrismModal #dx').value,
-			dy = $('#AddPrismModal #dy').value,
-			dz = $('#AddPrismModal #dz').value;
-		that.run(new commands.AddPrism([x, y, z], [dx, dy, dz]));
+		var x = $('#AddPrismModal #x').val(),
+			y = $('#AddPrismModal #y').val(),
+			z = $('#AddPrismModal #z').val(),
+			dx = $('#AddPrismModal #dx').val(),
+			dy = $('#AddPrismModal #dy').val(),
+			dz = $('#AddPrismModal #dz').val();
+		that.run(new commands.AddPrism([+x, +y, +z], [+dx, +dy, +dz]));
 	});
 
 	$('#AddPyramid').click(function() {
-		var x = $('#AddPyramidModal #x').value,
-			y = $('#AddPyramidModal #y').value,
-			z = $('#AddPyramidModal #z').value,
-			dx = $('#AddPyramidModal #dx').value,
-			dy = $('#AddPyramidModal #dy').value,
-			dz = $('#AddPyramidModal #dz').value;
-		that.run(new commands.AddPyramid([x, y, z], [dx, dy, dz]));
+		var x = $('#AddPyramidModal #x').val(),
+			y = $('#AddPyramidModal #y').val(),
+			z = $('#AddPyramidModal #z').val(),
+			dx = $('#AddPyramidModal #dx').val(),
+			dy = $('#AddPyramidModal #dy').val(),
+			dz = $('#AddPyramidModal #dz').val();
+		that.run(new commands.AddPyramid([+x, +y, +z], [+dx, +dy, +dz]));
 	});
 
 	$('#AddCylinder').click(function() {
-		var x = $('#AddCylinderModal#x').value,
-			y = $('#AddCylinderModal#y').value,
-			z = $('#AddCylinderModal #z').value,
-			radius = $('#AddCylinderModal #radius').value,
-			vertices = $('#AddCylinderModal #vertices').value,
-			height = $('#AddCylinderModal #height').value;
-		that.run(new commands.AddCylinder([x, y, z], [radius, vertices, height]));
+		var x = $('#AddCylinderModal #x').val(),
+			y = $('#AddCylinderModal #y').val(),
+			z = $('#AddCylinderModal #z').val(),
+			radius = $('#AddCylinderModal #radius').val(),
+			vertices = $('#AddCylinderModal #vertices').val(),
+			height = $('#AddCylinderModal #height').val();
+		that.run(new commands.AddCylinder([+x, +y, +z], [+radius, +vertices, +height]));
+	});
+
+	$('#AddShape').click(function() {
+		var height = $('#AddShapeModal #x').val();
+		var path=[];
+		$('#AddShapeModal #shape-list .uk-form-row').each(function() {
+			var $this = $(this);
+			var x = $this.find('input[name|=x]').val(),
+				y = $this.find('input[name|=y]').val(),
+				z = $this.find('input[name|=z]').val();
+			console.log(+x, +y, +z);
+			path.push([+x, +y, +z]);
+		});
+		that.run(new commands.AddShape(path, height));
+	});
+
+	$('#AddPath').click(function() {
+		var path=[];
+		$('#AddPathModal #path-list .uk-form-row').each(function() {
+			var $this = $(this);
+			var x = $this.find('input[name|=x]').val(),
+				y = $this.find('input[name|=y]').val(),
+				z = $this.find('input[name|=z]').val();
+			console.log(+x, +y, +z);
+			path.push([+x, +y, +z]);
+		});
+		that.run(new commands.AddPath(path));
 	});
 
 	var active = -1;
@@ -104,6 +176,32 @@ function Redactor(map) {
 				$el.parent().addClass('uk-active');
 			}
 		});
+
+		var obj = that.map.objects[id];
+		if(!obj) {
+			// hide all
+		} else {
+			$('#obj').text(""+id+" "+obj.type);
+			switch(obj.type) {
+			case 'pyramid':
+			case 'prism':
+				$('#pos #x').val(obj.pos[0]);
+				$('#pos #y').val(obj.pos[1]);
+				$('#pos #z').val(obj.pos[2]);
+				$('#size #x').val(obj.dx);
+				$('#size #y').val(obj.dy);
+				$('#size #z').val(obj.dz);
+				break;
+			case 'cylinder':
+				$('#pos #x').val(obj.pos[0]);
+				$('#pos #y').val(obj.pos[1]);
+				$('#pos #z').val(obj.pos[2]);
+				$('#size #x').val(obj.radius);
+				$('#size #y').val(obj.vertices);
+				$('#size #z').val(obj.height);
+				break;
+			}
+		}
 	};
 	var sync_list = function() {
 		$list.html('');
