@@ -1,11 +1,58 @@
 "use strict";
 
 var commands = require('./commands');
+var saveAs = require('filesaver.js');
+
+window.save = function() {
+	var blob = new Blob(["Hello, world!"], {type: "text/plain;charset=utf-8"});
+	saveAs(blob, "hello world.txt");
+}
 
 function Redactor(map) {
 	this.commands = [];
 	this.current = 0;
 	this.map = map;
+
+	var that = this;
+
+	$('#download').click(function() {
+		var blob = new Blob([JSON.stringify({objects:that.map.objects})], {type: "text/json;charset=utf-8"});
+		saveAs(blob, 'map.json');
+	});
+
+	function handleFileSelect(event) {
+		event.stopPropagation();
+		event.preventDefault();
+
+		var files = event.dataTransfer.files;
+
+		var f = files[0];
+		console.log(f.name, f.size, f.lastModifiedDate);
+
+		var reader = new FileReader();
+		reader.onload = function(e) {
+			that.map.objects = JSON.parse(e.target.result).objects;
+		};
+		reader.readAsDataURL(f);
+
+		$('#UploadModal a.uk-close').click();
+	}
+
+	function handleDragOver(event) {
+		event.stopPropagation();
+		event.preventDefault();
+		event.dataTransfer.dropEffect = 'copy'; // Explicitly show this is a copy.
+		$('#upload-drop').addClass('uk-dragover');
+	}
+	function handleDragLeave(event) {
+		$('#upload-drop').removeClass('uk-dragover');
+	}
+
+	// Setup the dnd listeners.
+	var dropZone = document.getElementById('upload-drop');
+	dropZone.addEventListener('dragover', handleDragOver, false);
+	dropZone.addEventListener('dragleave', handleDragLeave, false);
+	dropZone.addEventListener('drop', handleFileSelect, false);
 
 	this.render = function() {
 		//this.map.canvas.drawRect(x, y, width, height);
@@ -55,40 +102,94 @@ function Redactor(map) {
 		pos     : 'top-center'
 	});
 
-
-	var that = this;
-
 	var list_class = '#obj-list';
 	var $list = $(list_class);
 
+	$('#SetColor').click(function() {
+		var color = $('#color #hex-color').val(),
+			alpha = $('#color #alpha').val(),
+			c = parseInt(color.slice(1), 16),
+			r = (c >> 16) & 0xff,
+			g = (c >> 8) & 0xff,
+			b = c & 0xff;
+
+		if(that.map.objects[active]) {
+			that.run(new commands.SetColor(active, [r, g, b, +alpha]));
+		}
+	});
+	$('#Move').click(function() {
+		var x = $('#pos #x').val(),
+			y = $('#pos #y').val(),
+			z = $('#pos #z').val();
+		if(that.map.objects[active]) {
+			that.run(new commands.Move(active, [+x, +y, +z]));
+		}
+	});
+
+	$('#Resize').click(function() {
+		var x = $('#size #x').val(),
+			y = $('#size #y').val(),
+			z = $('#size #z').val();
+		if(that.map.objects[active]) {
+			that.run(new commands.Resize(active, [+x, +y, +z]));
+		}
+	});
+
 	$('#AddPrism').click(function() {
-		var x = $('#AddPrismModal #x').value,
-			y = $('#AddPrismModal #y').value,
-			z = $('#AddPrismModal #z').value,
-			dx = $('#AddPrismModal #dx').value,
-			dy = $('#AddPrismModal #dy').value,
-			dz = $('#AddPrismModal #dz').value;
-		that.run(new commands.AddPrism([x, y, z], [dx, dy, dz]));
+		var x = $('#AddPrismModal #x').val(),
+			y = $('#AddPrismModal #y').val(),
+			z = $('#AddPrismModal #z').val(),
+			dx = $('#AddPrismModal #dx').val(),
+			dy = $('#AddPrismModal #dy').val(),
+			dz = $('#AddPrismModal #dz').val();
+		that.run(new commands.AddPrism([+x, +y, +z], [+dx, +dy, +dz]));
 	});
 
 	$('#AddPyramid').click(function() {
-		var x = $('#AddPyramidModal #x').value,
-			y = $('#AddPyramidModal #y').value,
-			z = $('#AddPyramidModal #z').value,
-			dx = $('#AddPyramidModal #dx').value,
-			dy = $('#AddPyramidModal #dy').value,
-			dz = $('#AddPyramidModal #dz').value;
-		that.run(new commands.AddPyramid([x, y, z], [dx, dy, dz]));
+		var x = $('#AddPyramidModal #x').val(),
+			y = $('#AddPyramidModal #y').val(),
+			z = $('#AddPyramidModal #z').val(),
+			dx = $('#AddPyramidModal #dx').val(),
+			dy = $('#AddPyramidModal #dy').val(),
+			dz = $('#AddPyramidModal #dz').val();
+		that.run(new commands.AddPyramid([+x, +y, +z], [+dx, +dy, +dz]));
 	});
 
 	$('#AddCylinder').click(function() {
-		var x = $('#AddCylinderModal#x').value,
-			y = $('#AddCylinderModal#y').value,
-			z = $('#AddCylinderModal #z').value,
-			radius = $('#AddCylinderModal #radius').value,
-			vertices = $('#AddCylinderModal #vertices').value,
-			height = $('#AddCylinderModal #height').value;
-		that.run(new commands.AddCylinder([x, y, z], [radius, vertices, height]));
+		var x = $('#AddCylinderModal #x').val(),
+			y = $('#AddCylinderModal #y').val(),
+			z = $('#AddCylinderModal #z').val(),
+			radius = $('#AddCylinderModal #radius').val(),
+			vertices = $('#AddCylinderModal #vertices').val(),
+			height = $('#AddCylinderModal #height').val();
+		that.run(new commands.AddCylinder([+x, +y, +z], [+radius, +vertices, +height]));
+	});
+
+	$('#AddShape').click(function() {
+		var height = $('#AddShapeModal #x').val();
+		var path=[];
+		$('#AddShapeModal #shape-list .uk-form-row').each(function() {
+			var $this = $(this);
+			var x = $this.find('input[name|=x]').val(),
+				y = $this.find('input[name|=y]').val(),
+				z = $this.find('input[name|=z]').val();
+			console.log(+x, +y, +z);
+			path.push([+x, +y, +z]);
+		});
+		that.run(new commands.AddShape(path, height));
+	});
+
+	$('#AddPath').click(function() {
+		var path=[];
+		$('#AddPathModal #path-list .uk-form-row').each(function() {
+			var $this = $(this);
+			var x = $this.find('input[name|=x]').val(),
+				y = $this.find('input[name|=y]').val(),
+				z = $this.find('input[name|=z]').val();
+			console.log(+x, +y, +z);
+			path.push([+x, +y, +z]);
+		});
+		that.run(new commands.AddPath(path));
 	});
 
 	var active = -1;
@@ -104,6 +205,55 @@ function Redactor(map) {
 				$el.parent().addClass('uk-active');
 			}
 		});
+
+		var obj = that.map.objects[id];
+		if(!obj) {
+			// hide all
+			$('#obj').text('Select any object');
+			$('#pos').hide();
+			$('#size').hide();
+			$('#color').hide();
+			$('#modificators').hide();
+		} else {
+			$('#obj').text(""+id+" "+obj.type);
+			var c = obj.color;
+			var cc = new Isomer.Color(c[0], c[1], c[2], c[3])
+			$('#color #hex-color').val(cc.toHex());
+			$('#color #alpha').val(c[3]);
+			switch(obj.type) {
+			case 'pyramid':
+			case 'prism':
+				$('#pos').show();
+				$('#size').show();
+				$('#color').show();
+				$('#modificators').show();
+				$('#pos #x').val(obj.pos[0]);
+				$('#pos #y').val(obj.pos[1]);
+				$('#pos #z').val(obj.pos[2]);
+				$('#size #x').val(obj.dx);
+				$('#size #y').val(obj.dy);
+				$('#size #z').val(obj.dz);
+				break;
+			case 'cylinder':
+				$('#pos').show();
+				$('#size').show();
+				$('#color').show();
+				$('#modificators').show();
+				$('#pos #x').val(obj.pos[0]);
+				$('#pos #y').val(obj.pos[1]);
+				$('#pos #z').val(obj.pos[2]);
+				$('#size #x').val(obj.radius);
+				$('#size #y').val(obj.vertices);
+				$('#size #z').val(obj.height);
+				break;
+			case 'path':
+			case 'shape':
+				$('#pos').hide();
+				$('#size').hide();
+				$('#color').show();
+				$('#modificators').show();
+			}
+		}
 	};
 	var sync_list = function() {
 		$list.html('');

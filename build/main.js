@@ -1,10 +1,253 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+/* FileSaver.js
+ *  A saveAs() FileSaver implementation.
+ *  2014-05-27
+ *
+ *  By Eli Grey, http://eligrey.com
+ *  License: X11/MIT
+ *    See https://github.com/eligrey/FileSaver.js/blob/master/LICENSE.md
+ */
+
+/*global self */
+/*jslint bitwise: true, indent: 4, laxbreak: true, laxcomma: true, smarttabs: true, plusplus: true */
+
+/*! @source http://purl.eligrey.com/github/FileSaver.js/blob/master/FileSaver.js */
+
+var saveAs = saveAs
+  // IE 10+ (native saveAs)
+  || (typeof navigator !== "undefined" &&
+      navigator.msSaveOrOpenBlob && navigator.msSaveOrOpenBlob.bind(navigator))
+  // Everyone else
+  || (function(view) {
+	"use strict";
+	// IE <10 is explicitly unsupported
+	if (typeof navigator !== "undefined" &&
+	    /MSIE [1-9]\./.test(navigator.userAgent)) {
+		return;
+	}
+	var
+		  doc = view.document
+		  // only get URL when necessary in case Blob.js hasn't overridden it yet
+		, get_URL = function() {
+			return view.URL || view.webkitURL || view;
+		}
+		, save_link = doc.createElementNS("http://www.w3.org/1999/xhtml", "a")
+		, can_use_save_link = !view.externalHost && "download" in save_link
+		, click = function(node) {
+			var event = doc.createEvent("MouseEvents");
+			event.initMouseEvent(
+				"click", true, false, view, 0, 0, 0, 0, 0
+				, false, false, false, false, 0, null
+			);
+			node.dispatchEvent(event);
+		}
+		, webkit_req_fs = view.webkitRequestFileSystem
+		, req_fs = view.requestFileSystem || webkit_req_fs || view.mozRequestFileSystem
+		, throw_outside = function(ex) {
+			(view.setImmediate || view.setTimeout)(function() {
+				throw ex;
+			}, 0);
+		}
+		, force_saveable_type = "application/octet-stream"
+		, fs_min_size = 0
+		, deletion_queue = []
+		, process_deletion_queue = function() {
+			var i = deletion_queue.length;
+			while (i--) {
+				var file = deletion_queue[i];
+				if (typeof file === "string") { // file is an object URL
+					get_URL().revokeObjectURL(file);
+				} else { // file is a File
+					file.remove();
+				}
+			}
+			deletion_queue.length = 0; // clear queue
+		}
+		, dispatch = function(filesaver, event_types, event) {
+			event_types = [].concat(event_types);
+			var i = event_types.length;
+			while (i--) {
+				var listener = filesaver["on" + event_types[i]];
+				if (typeof listener === "function") {
+					try {
+						listener.call(filesaver, event || filesaver);
+					} catch (ex) {
+						throw_outside(ex);
+					}
+				}
+			}
+		}
+		, FileSaver = function(blob, name) {
+			// First try a.download, then web filesystem, then object URLs
+			var
+				  filesaver = this
+				, type = blob.type
+				, blob_changed = false
+				, object_url
+				, target_view
+				, get_object_url = function() {
+					var object_url = get_URL().createObjectURL(blob);
+					deletion_queue.push(object_url);
+					return object_url;
+				}
+				, dispatch_all = function() {
+					dispatch(filesaver, "writestart progress write writeend".split(" "));
+				}
+				// on any filesys errors revert to saving with object URLs
+				, fs_error = function() {
+					// don't create more object URLs than needed
+					if (blob_changed || !object_url) {
+						object_url = get_object_url(blob);
+					}
+					if (target_view) {
+						target_view.location.href = object_url;
+					} else {
+						window.open(object_url, "_blank");
+					}
+					filesaver.readyState = filesaver.DONE;
+					dispatch_all();
+				}
+				, abortable = function(func) {
+					return function() {
+						if (filesaver.readyState !== filesaver.DONE) {
+							return func.apply(this, arguments);
+						}
+					};
+				}
+				, create_if_not_found = {create: true, exclusive: false}
+				, slice
+			;
+			filesaver.readyState = filesaver.INIT;
+			if (!name) {
+				name = "download";
+			}
+			if (can_use_save_link) {
+				object_url = get_object_url(blob);
+				save_link.href = object_url;
+				save_link.download = name;
+				click(save_link);
+				filesaver.readyState = filesaver.DONE;
+				dispatch_all();
+				return;
+			}
+			// Object and web filesystem URLs have a problem saving in Google Chrome when
+			// viewed in a tab, so I force save with application/octet-stream
+			// http://code.google.com/p/chromium/issues/detail?id=91158
+			if (view.chrome && type && type !== force_saveable_type) {
+				slice = blob.slice || blob.webkitSlice;
+				blob = slice.call(blob, 0, blob.size, force_saveable_type);
+				blob_changed = true;
+			}
+			// Since I can't be sure that the guessed media type will trigger a download
+			// in WebKit, I append .download to the filename.
+			// https://bugs.webkit.org/show_bug.cgi?id=65440
+			if (webkit_req_fs && name !== "download") {
+				name += ".download";
+			}
+			if (type === force_saveable_type || webkit_req_fs) {
+				target_view = view;
+			}
+			if (!req_fs) {
+				fs_error();
+				return;
+			}
+			fs_min_size += blob.size;
+			req_fs(view.TEMPORARY, fs_min_size, abortable(function(fs) {
+				fs.root.getDirectory("saved", create_if_not_found, abortable(function(dir) {
+					var save = function() {
+						dir.getFile(name, create_if_not_found, abortable(function(file) {
+							file.createWriter(abortable(function(writer) {
+								writer.onwriteend = function(event) {
+									target_view.location.href = file.toURL();
+									deletion_queue.push(file);
+									filesaver.readyState = filesaver.DONE;
+									dispatch(filesaver, "writeend", event);
+								};
+								writer.onerror = function() {
+									var error = writer.error;
+									if (error.code !== error.ABORT_ERR) {
+										fs_error();
+									}
+								};
+								"writestart progress write abort".split(" ").forEach(function(event) {
+									writer["on" + event] = filesaver["on" + event];
+								});
+								writer.write(blob);
+								filesaver.abort = function() {
+									writer.abort();
+									filesaver.readyState = filesaver.DONE;
+								};
+								filesaver.readyState = filesaver.WRITING;
+							}), fs_error);
+						}), fs_error);
+					};
+					dir.getFile(name, {create: false}, abortable(function(file) {
+						// delete file if it already exists
+						file.remove();
+						save();
+					}), abortable(function(ex) {
+						if (ex.code === ex.NOT_FOUND_ERR) {
+							save();
+						} else {
+							fs_error();
+						}
+					}));
+				}), fs_error);
+			}), fs_error);
+		}
+		, FS_proto = FileSaver.prototype
+		, saveAs = function(blob, name) {
+			return new FileSaver(blob, name);
+		}
+	;
+	FS_proto.abort = function() {
+		var filesaver = this;
+		filesaver.readyState = filesaver.DONE;
+		dispatch(filesaver, "abort");
+	};
+	FS_proto.readyState = FS_proto.INIT = 0;
+	FS_proto.WRITING = 1;
+	FS_proto.DONE = 2;
+
+	FS_proto.error =
+	FS_proto.onwritestart =
+	FS_proto.onprogress =
+	FS_proto.onwrite =
+	FS_proto.onabort =
+	FS_proto.onerror =
+	FS_proto.onwriteend =
+		null;
+
+	view.addEventListener("unload", process_deletion_queue, false);
+	saveAs.unload = function() {
+		process_deletion_queue();
+		view.removeEventListener("unload", process_deletion_queue, false);
+	};
+	return saveAs;
+}(
+	   typeof self !== "undefined" && self
+	|| typeof window !== "undefined" && window
+	|| this.content
+));
+// `self` is undefined in Firefox for Android content script context
+// while `this` is nsIContentFrameMessageManager
+// with an attribute `content` that corresponds to the window
+
+if (typeof module !== "undefined" && module !== null) {
+  module.exports = saveAs;
+} else if ((typeof define !== "undefined" && define !== null) && (define.amd != null)) {
+  define([], function() {
+    return saveAs;
+  });
+}
+
+},{}],2:[function(require,module,exports){
 /**
  * Entry point for the Isomer API
  */
 module.exports = require('./js/isomer');
 
-},{"./js/isomer":4}],2:[function(require,module,exports){
+},{"./js/isomer":5}],3:[function(require,module,exports){
 function Canvas(elem) {
   this.elem = elem;
   this.ctx = this.elem.getContext('2d');
@@ -39,7 +282,7 @@ Canvas.prototype.path = function (points, color) {
 
 module.exports = Canvas;
 
-},{}],3:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 /**
  * A color instantiated with RGB between 0-255
  *
@@ -165,7 +408,7 @@ Color.prototype._hue2rgb = function (p, q, t){
 
 module.exports = Color;
 
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 var Canvas = require('./canvas');
 var Color = require('./color');
 var Path = require('./path');
@@ -307,7 +550,7 @@ Isomer.Vector = Vector;
 /* Expose Isomer API */
 module.exports = Isomer;
 
-},{"./canvas":2,"./color":3,"./path":5,"./point":6,"./shape":7,"./vector":8}],5:[function(require,module,exports){
+},{"./canvas":3,"./color":4,"./path":6,"./point":7,"./shape":8,"./vector":9}],6:[function(require,module,exports){
 var Point = require('./point');
 
 /**
@@ -463,7 +706,7 @@ Path.Star = function (origin, outerRadius, innerRadius, points) {
 /* Expose the Path constructor */
 module.exports = Path;
 
-},{"./point":6}],6:[function(require,module,exports){
+},{"./point":7}],7:[function(require,module,exports){
 function Point(x, y, z) {
   if (this instanceof Point) {
     this.x = (typeof x === 'number') ? x : 0;
@@ -549,7 +792,7 @@ Point.distance = function (p1, p2) {
 
 module.exports = Point;
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 var Path = require('./path');
 var Point = require('./point');
 
@@ -756,7 +999,7 @@ Shape.Cylinder = function (origin, radius, vertices, height) {
 
 module.exports = Shape;
 
-},{"./path":5,"./point":6}],8:[function(require,module,exports){
+},{"./path":6,"./point":7}],9:[function(require,module,exports){
 function Vector(i, j, k) {
   this.i = (typeof i === 'number') ? i : 0;
   this.j = (typeof j === 'number') ? j : 0;
@@ -793,7 +1036,7 @@ Vector.prototype.normalize = function () {
 
 module.exports = Vector;
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 "use strict";
 
 function Delete(id) {
@@ -950,7 +1193,7 @@ module.exports = {
 	Modificator: Modificator,
 };
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 "use strict";
 
 console.log('start');
@@ -1059,7 +1302,7 @@ function animate() {
 	requestAnimFrame(animate);
 }
 
-},{"./commands":9,"./map":11,"./redactor":12,"isomer":1}],11:[function(require,module,exports){
+},{"./commands":10,"./map":12,"./redactor":13,"isomer":2}],12:[function(require,module,exports){
 "use strict";
 
 var Isomer = require('isomer');
@@ -1135,15 +1378,62 @@ function Map(iso) {
 
 module.exports = Map;
 
-},{"isomer":1}],12:[function(require,module,exports){
+},{"isomer":2}],13:[function(require,module,exports){
 "use strict";
 
 var commands = require('./commands');
+var saveAs = require('filesaver.js');
+
+window.save = function() {
+	var blob = new Blob(["Hello, world!"], {type: "text/plain;charset=utf-8"});
+	saveAs(blob, "hello world.txt");
+}
 
 function Redactor(map) {
 	this.commands = [];
 	this.current = 0;
 	this.map = map;
+
+	var that = this;
+
+	$('#download').click(function() {
+		var blob = new Blob([JSON.stringify({objects:that.map.objects})], {type: "text/json;charset=utf-8"});
+		saveAs(blob, 'map.json');
+	});
+
+	function handleFileSelect(event) {
+		event.stopPropagation();
+		event.preventDefault();
+
+		var files = event.dataTransfer.files;
+
+		var f = files[0];
+		console.log(f.name, f.size, f.lastModifiedDate);
+
+		var reader = new FileReader();
+		reader.onload = function(e) {
+			that.map.objects = JSON.parse(e.target.result).objects;
+		};
+		reader.readAsDataURL(f);
+
+		$('#UploadModal a.uk-close').click();
+	}
+
+	function handleDragOver(event) {
+		event.stopPropagation();
+		event.preventDefault();
+		event.dataTransfer.dropEffect = 'copy'; // Explicitly show this is a copy.
+		$('#upload-drop').addClass('uk-dragover');
+	}
+	function handleDragLeave(event) {
+		$('#upload-drop').removeClass('uk-dragover');
+	}
+
+	// Setup the dnd listeners.
+	var dropZone = document.getElementById('upload-drop');
+	dropZone.addEventListener('dragover', handleDragOver, false);
+	dropZone.addEventListener('dragleave', handleDragLeave, false);
+	dropZone.addEventListener('drop', handleFileSelect, false);
 
 	this.render = function() {
 		//this.map.canvas.drawRect(x, y, width, height);
@@ -1193,40 +1483,94 @@ function Redactor(map) {
 		pos     : 'top-center'
 	});
 
-
-	var that = this;
-
 	var list_class = '#obj-list';
 	var $list = $(list_class);
 
+	$('#SetColor').click(function() {
+		var color = $('#color #hex-color').val(),
+			alpha = $('#color #alpha').val(),
+			c = parseInt(color.slice(1), 16),
+			r = (c >> 16) & 0xff,
+			g = (c >> 8) & 0xff,
+			b = c & 0xff;
+
+		if(that.map.objects[active]) {
+			that.run(new commands.SetColor(active, [r, g, b, +alpha]));
+		}
+	});
+	$('#Move').click(function() {
+		var x = $('#pos #x').val(),
+			y = $('#pos #y').val(),
+			z = $('#pos #z').val();
+		if(that.map.objects[active]) {
+			that.run(new commands.Move(active, [+x, +y, +z]));
+		}
+	});
+
+	$('#Resize').click(function() {
+		var x = $('#size #x').val(),
+			y = $('#size #y').val(),
+			z = $('#size #z').val();
+		if(that.map.objects[active]) {
+			that.run(new commands.Resize(active, [+x, +y, +z]));
+		}
+	});
+
 	$('#AddPrism').click(function() {
-		var x = $('#AddPrismModal #x').value,
-			y = $('#AddPrismModal #y').value,
-			z = $('#AddPrismModal #z').value,
-			dx = $('#AddPrismModal #dx').value,
-			dy = $('#AddPrismModal #dy').value,
-			dz = $('#AddPrismModal #dz').value;
-		that.run(new commands.AddPrism([x, y, z], [dx, dy, dz]));
+		var x = $('#AddPrismModal #x').val(),
+			y = $('#AddPrismModal #y').val(),
+			z = $('#AddPrismModal #z').val(),
+			dx = $('#AddPrismModal #dx').val(),
+			dy = $('#AddPrismModal #dy').val(),
+			dz = $('#AddPrismModal #dz').val();
+		that.run(new commands.AddPrism([+x, +y, +z], [+dx, +dy, +dz]));
 	});
 
 	$('#AddPyramid').click(function() {
-		var x = $('#AddPyramidModal #x').value,
-			y = $('#AddPyramidModal #y').value,
-			z = $('#AddPyramidModal #z').value,
-			dx = $('#AddPyramidModal #dx').value,
-			dy = $('#AddPyramidModal #dy').value,
-			dz = $('#AddPyramidModal #dz').value;
-		that.run(new commands.AddPyramid([x, y, z], [dx, dy, dz]));
+		var x = $('#AddPyramidModal #x').val(),
+			y = $('#AddPyramidModal #y').val(),
+			z = $('#AddPyramidModal #z').val(),
+			dx = $('#AddPyramidModal #dx').val(),
+			dy = $('#AddPyramidModal #dy').val(),
+			dz = $('#AddPyramidModal #dz').val();
+		that.run(new commands.AddPyramid([+x, +y, +z], [+dx, +dy, +dz]));
 	});
 
 	$('#AddCylinder').click(function() {
-		var x = $('#AddCylinderModal#x').value,
-			y = $('#AddCylinderModal#y').value,
-			z = $('#AddCylinderModal #z').value,
-			radius = $('#AddCylinderModal #radius').value,
-			vertices = $('#AddCylinderModal #vertices').value,
-			height = $('#AddCylinderModal #height').value;
-		that.run(new commands.AddCylinder([x, y, z], [radius, vertices, height]));
+		var x = $('#AddCylinderModal #x').val(),
+			y = $('#AddCylinderModal #y').val(),
+			z = $('#AddCylinderModal #z').val(),
+			radius = $('#AddCylinderModal #radius').val(),
+			vertices = $('#AddCylinderModal #vertices').val(),
+			height = $('#AddCylinderModal #height').val();
+		that.run(new commands.AddCylinder([+x, +y, +z], [+radius, +vertices, +height]));
+	});
+
+	$('#AddShape').click(function() {
+		var height = $('#AddShapeModal #x').val();
+		var path=[];
+		$('#AddShapeModal #shape-list .uk-form-row').each(function() {
+			var $this = $(this);
+			var x = $this.find('input[name|=x]').val(),
+				y = $this.find('input[name|=y]').val(),
+				z = $this.find('input[name|=z]').val();
+			console.log(+x, +y, +z);
+			path.push([+x, +y, +z]);
+		});
+		that.run(new commands.AddShape(path, height));
+	});
+
+	$('#AddPath').click(function() {
+		var path=[];
+		$('#AddPathModal #path-list .uk-form-row').each(function() {
+			var $this = $(this);
+			var x = $this.find('input[name|=x]').val(),
+				y = $this.find('input[name|=y]').val(),
+				z = $this.find('input[name|=z]').val();
+			console.log(+x, +y, +z);
+			path.push([+x, +y, +z]);
+		});
+		that.run(new commands.AddPath(path));
 	});
 
 	var active = -1;
@@ -1242,6 +1586,55 @@ function Redactor(map) {
 				$el.parent().addClass('uk-active');
 			}
 		});
+
+		var obj = that.map.objects[id];
+		if(!obj) {
+			// hide all
+			$('#obj').text('Select any object');
+			$('#pos').hide();
+			$('#size').hide();
+			$('#color').hide();
+			$('#modificators').hide();
+		} else {
+			$('#obj').text(""+id+" "+obj.type);
+			var c = obj.color;
+			var cc = new Isomer.Color(c[0], c[1], c[2], c[3])
+			$('#color #hex-color').val(cc.toHex());
+			$('#color #alpha').val(c[3]);
+			switch(obj.type) {
+			case 'pyramid':
+			case 'prism':
+				$('#pos').show();
+				$('#size').show();
+				$('#color').show();
+				$('#modificators').show();
+				$('#pos #x').val(obj.pos[0]);
+				$('#pos #y').val(obj.pos[1]);
+				$('#pos #z').val(obj.pos[2]);
+				$('#size #x').val(obj.dx);
+				$('#size #y').val(obj.dy);
+				$('#size #z').val(obj.dz);
+				break;
+			case 'cylinder':
+				$('#pos').show();
+				$('#size').show();
+				$('#color').show();
+				$('#modificators').show();
+				$('#pos #x').val(obj.pos[0]);
+				$('#pos #y').val(obj.pos[1]);
+				$('#pos #z').val(obj.pos[2]);
+				$('#size #x').val(obj.radius);
+				$('#size #y').val(obj.vertices);
+				$('#size #z').val(obj.height);
+				break;
+			case 'path':
+			case 'shape':
+				$('#pos').hide();
+				$('#size').hide();
+				$('#color').show();
+				$('#modificators').show();
+			}
+		}
 	};
 	var sync_list = function() {
 		$list.html('');
@@ -1327,4 +1720,4 @@ function Redactor(map) {
 
 module.exports = Redactor;
 
-},{"./commands":9}]},{},[10])
+},{"./commands":10,"filesaver.js":1}]},{},[11])
