@@ -1401,40 +1401,39 @@ function Redactor(map) {
 		saveAs(blob, 'map.json');
 	});
 
-function handleFileSelect(event) {
-	event.stopPropagation();
-	event.preventDefault();
+	function handleFileSelect(event) {
+		event.stopPropagation();
+		event.preventDefault();
 
-	var files = event.dataTransfer.files; // FileList object.
+		var files = event.dataTransfer.files;
 
-	// files is a FileList of File objects. List some properties.
-	//var output = [];
-	for (var i = 0, f; f = files[i]; i++) {
+		var f = files[0];
 		console.log(f.name, f.size, f.lastModifiedDate);
-		/*output.push('<li><strong>', escape(f.name), '</strong> (', f.type || 'n/a', ') - ',
-			f.size, ' bytes, last modified: ',
-			f.lastModifiedDate.toLocaleDateString(), '</li>');
-			*/
+
+		var reader = new FileReader();
+		reader.onload = function(e) {
+			that.map.objects = JSON.parse(e.target.result).objects;
+		};
+		reader.readAsDataURL(f);
+
+		$('#UploadModal a.uk-close').click();
 	}
 
-	$('#UploadModal a.uk-close').click();
-}
+	function handleDragOver(event) {
+		event.stopPropagation();
+		event.preventDefault();
+		event.dataTransfer.dropEffect = 'copy'; // Explicitly show this is a copy.
+		$('#upload-drop').addClass('uk-dragover');
+	}
+	function handleDragLeave(event) {
+		$('#upload-drop').removeClass('uk-dragover');
+	}
 
-function handleDragOver(event) {
-	event.stopPropagation();
-	event.preventDefault();
-	event.dataTransfer.dropEffect = 'copy'; // Explicitly show this is a copy.
-	$('#upload-drop').addClass('uk-dragover');
-}
-function handleDragLeave(event) {
-	$('#upload-drop').removeClass('uk-dragover');
-}
-
-// Setup the dnd listeners.
-var dropZone = document.getElementById('upload-drop');
-dropZone.addEventListener('dragover', handleDragOver, false);
-dropZone.addEventListener('dragleave', handleDragLeave, false);
-dropZone.addEventListener('drop', handleFileSelect, false);
+	// Setup the dnd listeners.
+	var dropZone = document.getElementById('upload-drop');
+	dropZone.addEventListener('dragover', handleDragOver, false);
+	dropZone.addEventListener('dragleave', handleDragLeave, false);
+	dropZone.addEventListener('drop', handleFileSelect, false);
 
 	this.render = function() {
 		//this.map.canvas.drawRect(x, y, width, height);
@@ -1487,6 +1486,36 @@ dropZone.addEventListener('drop', handleFileSelect, false);
 	var list_class = '#obj-list';
 	var $list = $(list_class);
 
+	$('#SetColor').click(function() {
+		var color = $('#color #hex-color').val(),
+			alpha = $('#color #alpha').val(),
+			c = parseInt(color.slice(1), 16),
+			r = (c >> 16) & 0xff,
+			g = (c >> 8) & 0xff,
+			b = c & 0xff;
+
+		if(that.map.objects[active]) {
+			that.run(new commands.SetColor(active, [r, g, b, +alpha]));
+		}
+	});
+	$('#Move').click(function() {
+		var x = $('#pos #x').val(),
+			y = $('#pos #y').val(),
+			z = $('#pos #z').val();
+		if(that.map.objects[active]) {
+			that.run(new commands.Move(active, [+x, +y, +z]));
+		}
+	});
+
+	$('#Resize').click(function() {
+		var x = $('#size #x').val(),
+			y = $('#size #y').val(),
+			z = $('#size #z').val();
+		if(that.map.objects[active]) {
+			that.run(new commands.Resize(active, [+x, +y, +z]));
+		}
+	});
+
 	$('#AddPrism').click(function() {
 		var x = $('#AddPrismModal #x').val(),
 			y = $('#AddPrismModal #y').val(),
@@ -1508,17 +1537,17 @@ dropZone.addEventListener('drop', handleFileSelect, false);
 	});
 
 	$('#AddCylinder').click(function() {
-		var x = $('#AddCylinderModal #x').value,
-			y = $('#AddCylinderModal #y').value,
-			z = $('#AddCylinderModal #z').value,
-			radius = $('#AddCylinderModal #radius').value,
-			vertices = $('#AddCylinderModal #vertices').value,
-			height = $('#AddCylinderModal #height').value;
+		var x = $('#AddCylinderModal #x').val(),
+			y = $('#AddCylinderModal #y').val(),
+			z = $('#AddCylinderModal #z').val(),
+			radius = $('#AddCylinderModal #radius').val(),
+			vertices = $('#AddCylinderModal #vertices').val(),
+			height = $('#AddCylinderModal #height').val();
 		that.run(new commands.AddCylinder([+x, +y, +z], [+radius, +vertices, +height]));
 	});
 
 	$('#AddShape').click(function() {
-		var height = $('#AddShapeModal #x').value;
+		var height = $('#AddShapeModal #x').val();
 		var path=[];
 		$('#AddShapeModal #shape-list .uk-form-row').each(function() {
 			var $this = $(this);
@@ -1561,11 +1590,24 @@ dropZone.addEventListener('drop', handleFileSelect, false);
 		var obj = that.map.objects[id];
 		if(!obj) {
 			// hide all
+			$('#obj').text('Select any object');
+			$('#pos').hide();
+			$('#size').hide();
+			$('#color').hide();
+			$('#modificators').hide();
 		} else {
 			$('#obj').text(""+id+" "+obj.type);
+			var c = obj.color;
+			var cc = new Isomer.Color(c[0], c[1], c[2], c[3])
+			$('#color #hex-color').val(cc.toHex());
+			$('#color #alpha').val(c[3]);
 			switch(obj.type) {
 			case 'pyramid':
 			case 'prism':
+				$('#pos').show();
+				$('#size').show();
+				$('#color').show();
+				$('#modificators').show();
 				$('#pos #x').val(obj.pos[0]);
 				$('#pos #y').val(obj.pos[1]);
 				$('#pos #z').val(obj.pos[2]);
@@ -1574,6 +1616,10 @@ dropZone.addEventListener('drop', handleFileSelect, false);
 				$('#size #z').val(obj.dz);
 				break;
 			case 'cylinder':
+				$('#pos').show();
+				$('#size').show();
+				$('#color').show();
+				$('#modificators').show();
 				$('#pos #x').val(obj.pos[0]);
 				$('#pos #y').val(obj.pos[1]);
 				$('#pos #z').val(obj.pos[2]);
@@ -1581,6 +1627,12 @@ dropZone.addEventListener('drop', handleFileSelect, false);
 				$('#size #y').val(obj.vertices);
 				$('#size #z').val(obj.height);
 				break;
+			case 'path':
+			case 'shape':
+				$('#pos').hide();
+				$('#size').hide();
+				$('#color').show();
+				$('#modificators').show();
 			}
 		}
 	};

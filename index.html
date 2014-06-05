@@ -21,7 +21,7 @@ html, body {
 	<div class="uk-width-2-10 uk-width-large-1-10 uk-height-1-1">
 		<br/><br/>
 		<div class="uk-panel uk-panel-box">
-		<h6 id="obj">Select any object</h6>
+		<h5 id="obj">Select any object</h5>
 		<form id="pos" class="uk-form">
 			<fieldset>
 				<legend>Position</legend>
@@ -31,7 +31,7 @@ html, body {
 					<input data-uk-tooltip="{pos:'right'}" title="Y" id="y" value="0" class="uk-width-1-1 uk-form-small" type="number">
 					<input data-uk-tooltip="{pos:'right'}" title="Z" id="z" value="0" class="uk-width-1-1 uk-form-small" type="number">
 
-					<a id="Move" class="uk-modal-close uk-button uk-button-primary uk-width-1-1">Move</a>
+					<a id="Move" class="uk-button uk-button-primary uk-width-1-1">Move</a>
 				</div>
 			</fieldset>
 		</form>
@@ -45,14 +45,45 @@ html, body {
 					<input data-uk-tooltip="{pos:'right'}" title="Y or Vertices" id="y" value="0" class="uk-width-1-1 uk-form-small" type="number">
 					<input data-uk-tooltip="{pos:'right'}" title="Z or Height" id="z" value="0" class="uk-width-1-1 uk-form-small" type="number">
 
-					<a id="Resize" class="uk-modal-close uk-button uk-button-primary uk-width-1-1">Resize</a>
+					<a id="Resize" class="uk-button uk-button-primary uk-width-1-1">Resize</a>
+				</div>
+			</fieldset>
+		</form>
+
+		<form id="color" class="uk-form">
+			<fieldset>
+				<legend>Color</legend>
+
+				<div class="uk-form-row">
+					<input data-uk-tooltip="{pos:'right'}" title="Color" id="hex-color" value="#000000" class="uk-width-1-1 uk-form-small" type="color">
+					<input data-uk-tooltip="{pos:'right'}" title="Alpha" id="alpha" value="1" class="uk-width-1-1 uk-form-small" type="number">
+
+					<a id="SetColor" class="uk-button uk-button-primary uk-width-1-1">SetColor</a>
 				</div>
 			</fieldset>
 		</form>
 		</div>
 
 	</div>
-	<div class="uk-width-5-10 uk-width-large-7-10 uk-height-1-1"></div>
+	<div class="uk-width-2-10 uk-width-large-1-10 uk-height-1-1">
+		<br/><br/>
+		<div id="modificators" class="uk-panel uk-panel-box">
+		<form class="uk-form">
+			<fieldset>
+				<legend>Modificators</legend>
+
+				<div class="uk-form-row">
+					<div class="uk-button-group">
+						<a data-uk-tooltip="" title="translate" class="uk-button uk-button-success"><i class="uk-icon-arrows"></i></a>
+						<a data-uk-tooltip="" title="scale" class="uk-button uk-button-success"><i class="uk-icon-expand"></i></a>
+						<a data-uk-tooltip="" title="rotateZ" class="uk-button uk-button-success"><i class="uk-icon-undo"></i></a>
+					</div>
+				</div>
+			</fieldset>
+		</form>
+		</div>
+	</div>
+	<div class="uk-width-3-10 uk-width-large-6-10 uk-height-1-1"></div>
 	<div class="uk-width-3-10 uk-width-large-2-10 uk-height-1-1">
 		<br/><br/>
 
